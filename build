@@ -1,0 +1,15 @@
+#!/bin/bash
+
+set -euo pipefail
+
+image="localhost/bootc-arch:latest"
+
+podman build --net host --security-opt label=disable --cap-add all -f Containerfile --tag "$image" .
+
+commit=$(podman run --rm "$image" ostree rev-parse --single)
+diffid=$(podman inspect "$image" | jq -r '.[0].RootFS.Layers[-1]')
+
+echo "FROM $image" | podman build \
+    --label ostree.commit="$commit" \
+    --label ostree.final-diffid="$diffid"\
+    --tag "$image" -
